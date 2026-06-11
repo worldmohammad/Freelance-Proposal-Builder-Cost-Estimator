@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal Builder & Freelance Cost Estimator — Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f1f5f9; }
+        body::before {
+            content: 'DEMO VERSION - Limited to 3 Proposals';
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 4vw; color: rgba(239, 68, 68, 0.1);
+            white-space: nowrap; pointer-events: none; z-index: 9998;
+            font-weight: 900; user-select: none; letter-spacing: 4px;
+        }
+        body::after {
+            content: 'Upgrade at digitalyar.company';
+            position: fixed; top: 20%; left: 10%; transform: rotate(20deg);
+            font-size: 2.5vw; color: rgba(37, 99, 235, 0.07);
+            white-space: nowrap; pointer-events: none; z-index: 9997;
+            font-weight: 700; user-select: none;
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .demo-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @media print {
+            @page { margin: 0; size: A4 portrait; }
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            #print-area { width: 100%; margin: 0; padding: 2cm; box-shadow: none; }
+        }
+        .print-only { display: none; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden" x-data="proposalApp">
+
+    <header class="bg-white shadow-sm border-b z-10 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-md">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-black text-slate-800 tracking-tight">Freelance <span class="text-indigo-600">Proposal Builder</span></h1>
+                        <span class="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full demo-pulse">DEMO</span>
+                    </div>
+                </div>
+                <nav class="flex gap-1 overflow-x-auto">
+                    <button @click="activeTab = 'list'" :class="activeTab === 'list' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'" class="px-4 py-2 rounded-md text-sm transition-colors whitespace-nowrap">Proposals</button>
+                    <button @click="activeTab = 'estimate'" :class="activeTab === 'estimate' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'" class="px-4 py-2 rounded-md text-sm transition-colors whitespace-nowrap">Estimate</button>
+                    <button @click="activeTab = 'preview'" :class="activeTab === 'preview' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'" class="px-4 py-2 rounded-md text-sm transition-colors whitespace-nowrap">Preview</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 px-4 py-2 text-center text-sm font-semibold no-print">
+        ⚠️ <strong>DEMO LIMITS:</strong> 3 proposals max. Export, backup & SLA disabled. 
+        <a href="https://digitalyar.company/product/spa10-freelance-proposal-builder/" target="_blank" class="text-indigo-600 underline font-bold">Upgrade to Full Version →</a>
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 no-print">
+        <div class="max-w-7xl mx-auto">
+
+            <!-- TAB: LIST -->
+            <div x-show="activeTab === 'list'" class="fade-in space-y-6" style="display: none;">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center border-b pb-4 mb-5">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-800">Saved Proposals</h2>
+                            <p class="text-xs text-slate-500">Demo: <span x-text="savedProposals.length"></span>/3 proposals stored locally.</p>
+                        </div>
+                        <button @click="createNew()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">+ New Proposal</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4 font-bold">Project</th>
+                                    <th class="py-3 px-4 font-bold">Client</th>
+                                    <th class="py-3 px-4 font-bold text-center">Total</th>
+                                    <th class="py-3 px-4 font-bold text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-700">
+                                <template x-for="p in savedProposals" :key="p.id">
+                                    <tr class="hover:bg-slate-50 transition-colors">
+                                        <td class="py-3 px-4 font-bold" x-text="p.data.projectTitle || 'Untitled'"></td>
+                                        <td class="py-3 px-4" x-text="p.data.clientName || '-'"></td>
+                                        <td class="py-3 px-4 text-center font-mono font-bold text-emerald-600" x-text="formatCurrency(p.summary.grandTotal)"></td>
+                                        <td class="py-3 px-4 text-center flex justify-center gap-2">
+                                            <button @click="editProposal(p)" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-md text-xs font-bold hover:bg-indigo-100 transition">Open</button>
+                                            <button @click="deleteProposal(p.id)" class="text-red-500 hover:bg-red-50 px-2 py-1.5 rounded-md transition">🗑️</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="savedProposals.length === 0">
+                                    <td colspan="4" class="py-12 text-center text-slate-400">No proposals yet. Load sample data or create new.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button @click="loadSampleData()" class="text-sm bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg font-bold hover:bg-amber-100 transition">📥 Load Sample Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: ESTIMATE -->
+            <div x-show="activeTab === 'estimate'" class="fade-in space-y-6" style="display: none;">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-5">Project Info</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Project Title *</label>
+                            <input x-model="data.projectTitle" type="text" placeholder="e.g., Website Redesign" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Client Name *</label>
+                            <input x-model="data.clientName" type="text" placeholder="e.g., Acme Corp" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Your Name</label>
+                            <input x-model="data.freelancerName" type="text" placeholder="e.g., John Doe" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5 bg-slate-50 p-4 rounded-lg">
+                        <div>
+                            <label class="block text-sm font-bold text-indigo-700 mb-1">Hourly Rate (USD)</label>
+                            <input x-model.number="data.hourlyRate" type="number" placeholder="75" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Buffer (%)</label>
+                            <input x-model.number="data.bufferPercent" type="number" min="0" max="100" placeholder="15" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Tax (%)</label>
+                            <input x-model.number="data.taxPercent" type="number" min="0" max="100" placeholder="9" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                                <h2 class="text-lg font-bold text-slate-800">Tasks & Phases</h2>
+                                <button @click="addTask()" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-md font-bold hover:bg-indigo-200 transition">+ Add Task</button>
+                            </div>
+                            <div class="space-y-3">
+                                <template x-for="(task, index) in data.tasks" :key="task.id">
+                                    <div class="flex gap-3 items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <div class="flex-1">
+                                            <input x-model="task.title" type="text" placeholder="Task title" class="w-full bg-transparent border-b border-slate-300 p-1 text-sm focus:border-indigo-500 outline-none font-bold">
+                                            <input x-model="task.desc" type="text" placeholder="Brief description" class="w-full bg-transparent p-1 text-xs text-slate-500 outline-none mt-1">
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-slate-500">Hours:</span>
+                                            <input x-model.number="task.hours" type="number" min="0" class="w-20 border border-slate-300 rounded p-1.5 text-sm text-center outline-none">
+                                            <span class="text-xs font-bold font-mono w-20 text-left" x-text="formatCurrency(task.hours * (data.hourlyRate || 0))"></span>
+                                            <button @click="removeTask(index)" class="text-red-400 hover:text-red-600 p-1">✕</button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6">
+                            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                                <h2 class="text-lg font-bold text-slate-800">Expenses</h2>
+                                <button @click="addExpense()" class="text-sm bg-slate-100 text-slate-700 px-3 py-1.5 rounded-md font-bold hover:bg-slate-200 transition">+ Add</button>
+                            </div>
+                            <div class="space-y-3">
+                                <template x-for="(exp, index) in data.expenses" :key="exp.id">
+                                    <div class="flex gap-3 items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <input x-model="exp.title" type="text" placeholder="Expense name" class="flex-1 bg-transparent border-b border-slate-300 p-1 text-sm outline-none">
+                                        <span class="text-xs text-slate-500">$</span>
+                                        <input x-model.number="exp.amount" type="number" min="0" class="w-32 border border-slate-300 rounded p-1.5 text-sm font-mono outline-none">
+                                        <button @click="removeExpense(index)" class="text-red-400 hover:text-red-600 p-1">✕</button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-1">
+                        <div class="bg-slate-800 text-white p-6 rounded-xl shadow-lg sticky top-6">
+                            <h3 class="text-lg font-bold border-b border-slate-600 pb-3 mb-4">Summary</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between"><span class="text-slate-300">Hours:</span><span class="font-bold font-mono" x-text="calculateTotals().totalHours + ' hrs'"></span></div>
+                                <div class="flex justify-between"><span class="text-slate-300">Labor:</span><span class="font-bold font-mono" x-text="formatCurrency(calculateTotals().tasksCost)"></span></div>
+                                <div class="flex justify-between"><span class="text-slate-300">Expenses:</span><span class="font-bold font-mono" x-text="formatCurrency(calculateTotals().expensesCost)"></span></div>
+                                <div class="flex justify-between text-amber-300" x-show="(data.bufferPercent||0)>0"><span>Buffer:</span><span class="font-mono" x-text="formatCurrency(calculateTotals().bufferAmount)"></span></div>
+                                <div class="flex justify-between text-red-300" x-show="(data.taxPercent||0)>0"><span>Tax:</span><span class="font-mono" x-text="formatCurrency(calculateTotals().taxAmount)"></span></div>
+                            </div>
+                            <div class="mt-6 pt-4 border-t-2 border-slate-500">
+                                <p class="text-slate-300 text-xs mb-1">Final Price</p>
+                                <div class="text-3xl font-black text-emerald-400 font-mono" x-text="formatCurrency(calculateTotals().grandTotal)"></div>
+                            </div>
+                            <button @click="saveCurrent()" class="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-md transition-colors">💾 Save</button>
+                            <button @click="activeTab = 'preview'" class="w-full mt-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-lg transition-colors">👁️ Preview</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: PREVIEW -->
+            <div x-show="activeTab === 'preview'" class="fade-in" style="display: none;">
+                <div class="flex justify-between items-center mb-4 bg-white p-4 rounded-lg shadow-sm">
+                    <p class="text-sm text-slate-600">Preview your proposal. <strong>Print/PDF export is a Pro feature.</strong></p>
+                    <div class="flex gap-2">
+                        <button @click="saveCurrent()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition-colors">💾 Save</button>
+                        <button onclick="alert('🔒 Print/PDF export is a Pro feature. Upgrade at digitalyar.company')" class="bg-slate-400 text-white font-bold py-2 px-6 rounded-lg shadow-sm cursor-pointer opacity-70">🖨️ Print <span class="text-xs bg-amber-500 px-1.5 py-0.5 rounded ml-1">PRO</span></button>
+                    </div>
+                </div>
+                <div class="bg-slate-300 p-8 rounded-xl overflow-auto flex justify-center shadow-inner h-[500px]">
+                    <div class="bg-white shadow-2xl origin-top transform scale-75 lg:scale-90" style="width: 21cm; min-height: 29.7cm;">
+                        <div class="p-[2cm] w-full h-full">
+                            <div class="border-b-4 border-indigo-600 pb-6 mb-8">
+                                <h1 class="text-4xl font-black text-slate-900 mb-2">Technical & Financial Proposal</h1>
+                                <h2 class="text-xl text-indigo-700 font-bold" x-text="data.projectTitle || 'Untitled'"></h2>
+                                <div class="mt-4 text-sm text-slate-600 space-y-1">
+                                    <p><strong>Prepared for:</strong> <span x-text="data.clientName || 'N/A'"></span></p>
+                                    <p><strong>By:</strong> <span x-text="data.freelancerName || 'N/A'"></span></p>
+                                </div>
+                            </div>
+                            <table class="w-full text-sm border-collapse mb-8">
+                                <thead><tr class="bg-slate-100"><th class="border p-2 text-left">#</th><th class="border p-2 text-left">Task</th><th class="border p-2 text-center w-24">Hours</th><th class="border p-2 text-center w-32">Cost</th></tr></thead>
+                                <tbody>
+                                    <template x-for="(task, index) in data.tasks" :key="index">
+                                        <tr><td class="border p-2 text-center" x-text="index+1"></td><td class="border p-2 font-bold" x-text="task.title"></td><td class="border p-2 text-center" x-text="task.hours"></td><td class="border p-2 text-center font-mono" x-text="formatCurrency(task.hours * (data.hourlyRate||0))"></td></tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                            <div class="text-right border-t-2 border-indigo-200 pt-4">
+                                <p class="text-2xl font-black text-indigo-700 font-mono" x-text="'Total: ' + formatCurrency(calculateTotals().grandTotal)"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="print-area" class="print-only text-slate-800 bg-white">
+        <div class="border-b-4 border-indigo-600 pb-6 mb-8">
+            <h1 class="text-4xl font-black text-slate-900 mb-2">Technical & Financial Proposal</h1>
+            <h2 class="text-xl text-indigo-700 font-bold" x-text="data.projectTitle || 'Untitled'"></h2>
+            <div class="mt-4 text-sm text-slate-600 space-y-1">
+                <p><strong>Prepared for:</strong> <span x-text="data.clientName || 'N/A'"></span></p>
+                <p><strong>By:</strong> <span x-text="data.freelancerName || 'N/A'"></span></p>
+            </div>
+        </div>
+        <table class="w-full text-sm border-collapse mb-8">
+            <thead><tr class="bg-slate-100"><th class="border p-2 text-left">#</th><th class="border p-2 text-left">Task</th><th class="border p-2 text-center w-24">Hours</th><th class="border p-2 text-center w-32">Cost</th></tr></thead>
+            <tbody>
+                <template x-for="(task, index) in data.tasks" :key="index">
+                    <tr><td class="border p-2 text-center" x-text="index+1"></td><td class="border p-2 font-bold" x-text="task.title"></td><td class="border p-2 text-center" x-text="task.hours"></td><td class="border p-2 text-center font-mono" x-text="formatCurrency(task.hours * (data.hourlyRate||0))"></td></tr>
+                </template>
+            </tbody>
+        </table>
+        <div class="text-right border-t-2 border-indigo-200 pt-4">
+            <p class="text-2xl font-black text-indigo-700 font-mono" x-text="'Total: ' + formatCurrency(calculateTotals().grandTotal)"></p>
+        </div>
+    </div>
+
+    <script>
+        const DB_NAME = "FreelanceProposalDB_Demo_v1";
+        const DEMO_MAX_PROPOSALS = 3;
+        let db;
+
+        const dbUtils = {
+            init: () => new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = (e) => { db = e.target.result; if (!db.objectStoreNames.contains("proposals")) db.createObjectStore("proposals", { keyPath: "id" }); };
+                req.onsuccess = (e) => { db = e.target.result; resolve(); };
+                req.onerror = reject;
+            }),
+            getAll: () => new Promise(r => { const tx = db.transaction("proposals","readonly"); tx.objectStore("proposals").getAll().onsuccess = e => r(e.target.result||[]); }),
+            save: (p) => new Promise(r => { const tx = db.transaction("proposals","readwrite"); tx.objectStore("proposals").put(p); tx.oncomplete = r; }),
+            delete: (id) => new Promise(r => { const tx = db.transaction("proposals","readwrite"); tx.objectStore("proposals").delete(id); tx.oncomplete = r; }),
+            clearAll: () => new Promise(r => { const tx = db.transaction("proposals","readwrite"); tx.objectStore("proposals").clear(); tx.oncomplete = r; }),
+            count: () => new Promise(r => { const tx = db.transaction("proposals","readonly"); tx.objectStore("proposals").count().onsuccess = e => r(e.target.result); })
+        };
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('proposalApp', () => ({
+                activeTab: 'list',
+                savedProposals: [],
+                currentId: null,
+                data: {},
+
+                getDefaultData() {
+                    return {
+                        projectTitle: '', clientName: '', freelancerName: '',
+                        hourlyRate: '', bufferPercent: '', taxPercent: '',
+                        validUntil: '', tasks: [], expenses: [],
+                        introText: '', deliverablesText: '',
+                        sla: { supportPeriod: '', revisions: '', paymentTerms: '' }
+                    };
+                },
+
+                async init() {
+                    this.data = this.getDefaultData();
+                    await dbUtils.init();
+                    await this.refreshList();
+                    if (this.savedProposals.length === 0) await this.loadSampleData();
+                    this.activeTab = this.savedProposals.length > 0 ? 'list' : 'estimate';
+                },
+
+                async refreshList() {
+                    this.savedProposals = (await dbUtils.getAll()).sort((a,b) => b.updatedAt - a.updatedAt);
+                },
+
+                createNew() { this.currentId = null; this.data = this.getDefaultData(); this.activeTab = 'estimate'; },
+
+                async saveCurrent() {
+                    if (!this.data.projectTitle || !this.data.clientName) return alert('Please fill Project Title and Client Name.');
+                    const count = await dbUtils.count();
+                    if (!this.currentId && count >= DEMO_MAX_PROPOSALS) return alert(`⚠️ Demo limit: ${DEMO_MAX_PROPOSALS} proposals max. Upgrade for unlimited.`);
+                    const totals = this.calculateTotals();
+                    const doc = { id: this.currentId || Date.now(), updatedAt: Date.now(), dateString: new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), data: JSON.parse(JSON.stringify(this.data)), summary: { grandTotal: totals.grandTotal } };
+                    await dbUtils.save(doc);
+                    this.currentId = doc.id;
+                    await this.refreshList();
+                    alert('✅ Proposal saved!');
+                },
+
+                editProposal(p) { this.currentId = p.id; this.data = JSON.parse(JSON.stringify(p.data)); this.activeTab = 'preview'; },
+
+                async deleteProposal(id) {
+                    if (confirm('Delete this proposal?')) { await dbUtils.delete(id); await this.refreshList(); if (this.currentId === id) this.createNew(); }
+                },
+
+                async loadSampleData() {
+                    const samples = [
+                        { id: 1001, updatedAt: Date.now()-172800000, dateString: new Date(Date.now()-172800000).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), data: { projectTitle:'E-Commerce Website Redesign', clientName:'UrbanStyle Fashion Inc.', freelancerName:'Alex Morgan', hourlyRate:'85', bufferPercent:'15', taxPercent:'8', validUntil:'', tasks:[{id:1,title:'Discovery & Analysis',desc:'Requirements gathering',hours:16},{id:2,title:'UI/UX Design',desc:'Wireframes & prototypes',hours:40},{id:3,title:'Frontend Development',desc:'React/Next.js',hours:80},{id:4,title:'Backend Development',desc:'Node.js & PostgreSQL',hours:60}], expenses:[{id:1,title:'Theme License',amount:350},{id:2,title:'Stock Photography',amount:200}], introText:'We are pleased to present this comprehensive proposal.',deliverablesText:'Complete source code, documentation, and deployment.',sla:{supportPeriod:'30 days',revisions:'2 rounds',paymentTerms:'30% upfront'}},summary:{grandTotal:24225}},
+                        { id: 1002, updatedAt: Date.now()-432000000, dateString: new Date(Date.now()-432000000).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), data: { projectTitle:'Mobile App UI Kit Design', clientName:'TechVenture Studio', freelancerName:'Alex Morgan', hourlyRate:'95', bufferPercent:'10', taxPercent:'0', validUntil:'', tasks:[{id:1,title:'Brand Exploration',desc:'Mood boards',hours:12},{id:2,title:'Component Library',desc:'UI components',hours:24},{id:3,title:'Screen Design',desc:'12 screens',hours:36}], expenses:[{id:1,title:'Icon License',amount:99}], introText:'Modern UI kit for portfolio companies.',deliverablesText:'Figma file, design tokens, brand guidelines.',sla:{supportPeriod:'14 days',revisions:'1 round',paymentTerms:'50% upfront'}},summary:{grandTotal:8470}},
+                        { id: 1003, updatedAt: Date.now()-1036800000, dateString: new Date(Date.now()-1036800000).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}), data: { projectTitle:'SEO Content Strategy', clientName:'GreenLeaf Foods', freelancerName:'Alex Morgan', hourlyRate:'65', bufferPercent:'10', taxPercent:'5', validUntil:'', tasks:[{id:1,title:'Keyword Research',desc:'Strategy',hours:20},{id:2,title:'Blog Setup',desc:'WordPress',hours:12},{id:3,title:'10 Articles',desc:'2000+ words each',hours:40}], expenses:[{id:1,title:'SEO Tools',amount:198}], introText:'Content marketing strategy.',deliverablesText:'Content calendar, articles, analytics setup.',sla:{supportPeriod:'30 days',revisions:'1 per article',paymentTerms:'40% upfront'}},summary:{grandTotal:6426}}
+                    ];
+                    for (const p of samples) await dbUtils.save(p);
+                    await this.refreshList();
+                },
+
+                addTask() { this.data.tasks.push({ id: Date.now(), title: '', desc: '', hours: 0 }); },
+                removeTask(i) { this.data.tasks.splice(i, 1); },
+                addExpense() { this.data.expenses.push({ id: Date.now(), title: '', amount: 0 }); },
+                removeExpense(i) { this.data.expenses.splice(i, 1); },
+
+                calculateTotals() {
+                    let totalHours = 0, tasksCost = 0;
+                    this.data.tasks.forEach(t => { const h = parseFloat(t.hours)||0; totalHours += h; tasksCost += h * (parseFloat(this.data.hourlyRate)||0); });
+                    let expensesCost = 0;
+                    this.data.expenses.forEach(e => expensesCost += (parseFloat(e.amount)||0));
+                    const base = tasksCost + expensesCost;
+                    const buffer = base * ((parseFloat(this.data.bufferPercent)||0)/100);
+                    const withBuffer = base + buffer;
+                    const tax = withBuffer * ((parseFloat(this.data.taxPercent)||0)/100);
+                    return { totalHours, tasksCost, expensesCost, baseTotal: base, bufferAmount: buffer, taxAmount: tax, grandTotal: withBuffer + tax };
+                },
+
+                formatCurrency(v) {
+                    if (!v) return '$0';
+                    return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(v));
+                }
+            }));
+        });
+
+        document.addEventListener('contextmenu', e => { e.preventDefault(); alert('⛔ Demo version. Purchase at digitalyar.company'); });
+        document.addEventListener('keydown', e => { if ((e.ctrlKey&&e.key==='s')||(e.ctrlKey&&e.key==='u')||e.key==='F12') e.preventDefault(); });
+    </script>
+</body>
+</html>
